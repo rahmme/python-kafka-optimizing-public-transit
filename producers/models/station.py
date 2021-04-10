@@ -46,29 +46,26 @@ class Station(Producer):
     def run(self, train, direction, prev_station_id, prev_direction):
         """Simulates train arrivals at this station"""
         logger.info(f"train {train.train_id} arrived at station {self.name}")
-        value = {
-            "station_id": self.station_id,
-            "train_id": train.train_id,
-            "direction": direction,
-            "line": self.color,
-            "train_status": train.status,
-            "prev_station_id": prev_station_id,
-            "prev_direction": prev_direction
-        }
-        key = {"timestamp": self.time_millis()}
         try:
             self.producer.produce(
                 topic=self.topic_name,
-                key=key,
-                value=value,
+                key={"timestamp": self.time_millis()},
+                value={
+                    "station_id": self.station_id,
+                    "train_id": train.train_id,
+                    "direction": direction,
+                    "line": self.color.name,
+                    "train_status": train.status.name,
+                    "prev_station_id": prev_station_id,
+                    "prev_direction": prev_direction
+                },
                 key_schema=self.key_schema,
                 value_schema=self.value_schema
             )
         except Exception as e:
-            print(f"Exception while producing record value - {value} to topic - {self.topic_name}: {e}")
+            logger.error(f"Exception while producing record value to topic - {self.topic_name}: {e}")
         else:
-            print(f"Successfully producing record value - {value} to topic - {self.topic_name}")
-        self.producer.flush()
+            logger.debug(f"Successfully producing record value to topic - {self.topic_name}")
 
     def __str__(self):
         return """

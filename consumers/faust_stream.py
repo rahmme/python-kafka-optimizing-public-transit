@@ -46,23 +46,21 @@ def transform(station):
 
 
 app = faust.App("stations-stream", broker="kafka://localhost:9092", store="memory://")
-topic = app.topic("org.chicago.cta.jdbc.source.station", value_type=Station)
-out_topic = app.topic("org.chicago.cta.transformed.station",
-                      partitions=1,
-                      key_type=str,
-                      value_type=TransformedStation)
+topic = app.topic("org.chicago.cta.jdbc.source.stations", value_type=Station)
+out_topic = app.topic("org.chicago.cta.transformed.stations", partitions=1)
 table = app.Table(
-    "TRANSFORMED_STATION",
-    default=int,
+    "org.chicago.cta.transformed.stations",
+    default=TransformedStation,
     partitions=1,
     changelog_topic=out_topic,
 )
+
 
 @app.agent(topic)
 async def stationevent(stationevents):
     stationevents.add_processor(transform)
     async for se in stationevents:
-        await out_topic.send(key=se.station_id, value=se)
+        table[se.station_id] = se
 
 
 if __name__ == "__main__":
