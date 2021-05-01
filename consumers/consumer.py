@@ -34,7 +34,8 @@ class KafkaConsumer:
 
         self.broker_properties = {
             "group.id": "consumer-group-0",
-            "bootstrap.servers": BROKER_URL
+            "bootstrap.servers": BROKER_URL,
+            "default.topic.config": {"auto.offset.reset": "earliest" if offset_earliest else "latest"}
         }
 
         if is_avro is True:
@@ -77,6 +78,7 @@ class KafkaConsumer:
                 return 0
             else:
                 logger.debug(f"consumed message {message.key()}: {message.value()}")
+                self.message_handler(message)
                 return 1
 
         return 0

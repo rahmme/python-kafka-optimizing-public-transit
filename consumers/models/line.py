@@ -3,6 +3,7 @@ import json
 import logging
 
 from models import Station
+import topic_check
 
 
 logger = logging.getLogger(__name__)
@@ -56,15 +57,15 @@ class Line:
 
     def process_message(self, message):
         """Given a kafka message, extract data"""
-        if message.topic == "org.chicago.cta.stations.table.v1":
+        if message.topic() == "org.chicago.cta.transformed.stations":
             try:
                 value = json.loads(message.value())
                 self._handle_station(value)
             except Exception as e:
                 logger.fatal("bad station? %s, %s", value, e)
-        elif  message.topic == "^org.chicago.cta.station.arrivals.":
+        elif topic_check.contains_substring(message.topic(), "station.arrivals"):
             self._handle_arrival(message)
-        elif  message.topic == "TURNSTILE_SUMMARY":
+        elif  message.topic() == "TURNSTILE_SUMMARY":
             json_data = json.loads(message.value())
             station_id = json_data.get("STATION_ID")
             station = self.stations.get(station_id)
@@ -74,5 +75,5 @@ class Line:
             station.process_message(json_data)
         else:
             logger.debug(
-                "unable to find handler for message from topic %s", message.topic
+                "unable to find handler for message from topic %s", message.topic()
             )
